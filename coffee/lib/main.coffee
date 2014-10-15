@@ -26,8 +26,6 @@ module.exports = (subject, objects, options) ->
   unless Array.isArray(arguments[1])
     throw new Error('Expecting an array as second argument')
 
-  objects_mapped = objects
-
   # If filter is provided in options hash, apply it first to objects
   objects_filtered = objects
   if options?.filter?
