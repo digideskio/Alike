@@ -11,6 +11,8 @@
           e.g. if subject is {a:0} and objects are [{x: {a: 0}}, {x: {a: 2}}], then provide key: function(o) {return o.x}
       - filter: (default = none) a filter function that returns true for items to be considered
           e.g. to only consider objects with non-negative a: function(o) {return o.a >= 0})
+      - explain: (default = false) if true, for every object will return distances of individual attributes as well as the overall distance from the subject as a property called 'explanation' on the object
+          e.g. if subject is {a:0, b:0} and object is {a:0, b:0}, the returned object will be {a:0, explanation: {distance:0, details: {a:0, b:0}}}
 ###
 
 util = require './util'
@@ -54,16 +56,23 @@ module.exports = (subject, objects, options) ->
   if options?.weights
     weights = options.weights
 
+  # whether details of the distances need to be returned
+  explain = no
+  if options?.explain
+    explain = yes
+
   # Calculate all object distances from subject and store index
   distances = for object, i in objects_mapped
     index: i
-    dist: util.distance(subject, object, {stdv: stdv, weights: weights})
+    dist: util.distance(subject, object, {stdv: stdv, weights: weights, explain: explain})
 
   # Sort distances ascending
-  sortMap = stable distances, (a,b) -> a.dist - b.dist
+  sortMap = stable distances, (a,b) ->
+    if a.dist.distance? then (a.dist.distance - b.dist.distance) else (a.dist - b.dist)
 
   # Copy objects in sorted order using sortMap
   sortedObjects = for i in sortMap
+    objects_filtered[i.index].explanation = i.dist if options?.explain
     objects_filtered[i.index]
 
   # Slice top k from sortedObjects
